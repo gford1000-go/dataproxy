@@ -24,9 +24,33 @@ type MockCreateResponse struct {
 	PageTokens []string `json:"tokens"`
 }
 
+func NewMockCreatRequestHandlerFactory() HandlerFactory {
+	return &mockCreatRequestHandlerFactory{}
+}
+
+type mockCreatRequestHandlerFactory struct {
+}
+
+func (f *mockCreatRequestHandlerFactory) New(pattern string, config *cacheConfig, requestID string) Handler {
+	h := &mockCreatRequestHandler{}
+	h.method = http.MethodPost
+	h.config = config
+	h.handler = h.handleCreatePages
+	h.logger = GetLogger()
+	h.pattern = pattern
+	h.requestID = requestID
+
+	return h
+}
+
+type mockCreatRequestHandler struct {
+	baseHandler
+}
+
+
 // handleCreatePages is invoked after the initial authorization and validation checks are completed,
 // and creates pages of random data as defined by the request
-func handleCreatePages(w http.ResponseWriter, req *http.Request, config *cacheConfig) {
+func (m *mockCreatRequestHandler) handleCreatePages(w http.ResponseWriter, req *http.Request) {
 
 	// Get the details of the requested page
 	var p MockCreateRequest
@@ -37,7 +61,7 @@ func handleCreatePages(w http.ResponseWriter, req *http.Request, config *cacheCo
 	}
 
 	// Generate the data in the cache
-	resp, err := createMockData(&p, config)
+	resp, err := m.createMockData(&p)
 	if err != nil {
 		returnError(w, err.Error(), http.StatusBadRequest)
 		return
@@ -49,7 +73,7 @@ func handleCreatePages(w http.ResponseWriter, req *http.Request, config *cacheCo
 	json.NewEncoder(w).Encode(resp)
 }
 
-func createMockData(req *MockCreateRequest, config *cacheConfig) (*MockCreateResponse, error) {
+func (m *mockCreatRequestHandler) createMockData(req *MockCreateRequest) (*MockCreateResponse, error) {
 
 	// Hash should be generated from the request; here is it just a UUID
 	hash := NewUUID()
@@ -64,7 +88,7 @@ func createMockData(req *MockCreateRequest, config *cacheConfig) (*MockCreateRes
 
 	var remainingRecords int = req.RecordCount
 
-	_, err := createPage(hash, token, req.Columns, remainingRecords, req.RecordsPerPage, config)
+	_, err := m.createPage(hash, token, req.Columns, remainingRecords, req.RecordsPerPage)
 
 	if err != nil {
 		return nil, err
@@ -75,7 +99,7 @@ func createMockData(req *MockCreateRequest, config *cacheConfig) (*MockCreateRes
 }
 
 // createPage creates a single page, generating the remaining records up to the page size
-func createPage(hash, token string, cols []MockColumn, remainingRecords, pageRecordCount int, config *cacheConfig) (int, error) {
+func (m *mockCreatRequestHandler) createPage(hash, token string, cols []MockColumn, remainingRecords, pageRecordCount int) (int, error) {
 	type Record struct {
 		Cells []string `json:"cells"`
 	}
@@ -135,7 +159,7 @@ func createPage(hash, token string, cols []MockColumn, remainingRecords, pageRec
 	var buf bytes.Buffer
 	json.NewEncoder(&buf).Encode(page)
 
-	err := writePage(buf.Bytes(), info, config)
+	err := m.writePage(buf.Bytes(), info)
 	if err != nil {
 		return 0, err
 	}

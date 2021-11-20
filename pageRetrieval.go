@@ -23,9 +23,9 @@ func init() {
 }
 
 // getPage identifies the handling function based on type
-func getPage(info *pageInfo, config *cacheConfig) (page []byte, err error) {
+func (p * pageRequestHandler) getPage(info *pageInfo) (page []byte, err error) {
 
-	b, err := retrievePage(info, config)
+	b, err := p.retrievePage(info)
 	if err != nil {
 		return nil, err
 	}

@@ -6,36 +6,24 @@ import (
     "net/http"
 )
 
+// Handler describes the interface to handle a request
+type Handler interface {
+	Process(w http.ResponseWriter, req *http.Request)
+	Log(msg string)
+}
+
+// HandlerFactory provides an instance creation method for a Handler
+type HandlerFactory interface {
+	New(pattern string, config *cacheConfig, requestID string) Handler
+}
+
 // postHandler creates a request handler that ensures consistent authorization and validation behaviour for POST requests
-func postHandler(pattern string, config *cacheConfig, reqHandler func(w http.ResponseWriter, req *http.Request, config *cacheConfig)) func(w http.ResponseWriter, req *http.Request) {
+func postHandler(pattern string, config *cacheConfig, factory HandlerFactory) func(w http.ResponseWriter, req *http.Request) {
 
 	return func(w http.ResponseWriter, req *http.Request) {
-		logger := GetLogger()
-		requestID := NewUUID()
-		logger.Printf(fmt.Sprintf("Processing %v (%v) ", pattern, requestID))
-		defer logger.Printf(fmt.Sprintf("Completed %v (%v) ", pattern, requestID))
-
-		defer func() {
-			if r := recover(); r != nil {
-				logger.Printf(fmt.Sprintf("Processing error %v (%v) ", r, requestID))
-				returnError(w, "Request error", http.StatusBadRequest)
-			}
-		}()
-
-		// Accept only POST requests
-		if req.Method != http.MethodPost {
-			returnError(w, "Only POST methods are accepted", http.StatusMethodNotAllowed)
-			return	
-		}
-
-		// Always authorize the requestor
-		if err := authorize(pattern, req); err != nil {
-			returnError(w, err.Error(), http.StatusUnauthorized)
-			return	
-		}
-
-		// Invoke the delegated handler
-		reqHandler(w, req, config)
+		// Create a new handler instance for each request, with a unique identifier
+		handler := factory.New(pattern, config, NewUUID())
+		handler.Process(w, req)
 	}
 }
 
@@ -69,7 +57,7 @@ func main() {
 	logger.Println(fmt.Sprintf("Starting on port %v", config.port))
 
 	http.HandleFunc("/alive", alive)
-	http.HandleFunc("/page", postHandler("/page", config.cache, handlePageRetrieval))
-	http.HandleFunc("/request", postHandler("/request", config.cache, handleCreatePages))
+	http.HandleFunc("/page", postHandler("/page", config.cache, NewPageRequestHandlerFactory()))
+	http.HandleFunc("/request", postHandler("/request", config.cache, NewMockCreatRequestHandlerFactory()))
 	http.ListenAndServe(fmt.Sprintf(":%v", config.port), nil)
 }
