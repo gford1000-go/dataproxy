@@ -4,13 +4,19 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"math/rand"
 	"net/http"
+	"strings"
 )
 
 type MockColumn struct {
 	Name string `json:"name"`
 	Type string `json:"type"`
 	MaxLength int `json:"max_length"`
+	IntLowerBound int `json:"int_lower_bound"`
+	IntUpperBound int `json:"int_upper_bound"`
+	FloatLowerBound float64 `json:"float_lower_bound"`
+	FloatUpperBound float64 `json:"float_upper_bound"`
 }
 
 type MockCreateRequest struct {
@@ -24,6 +30,8 @@ type MockCreateResponse struct {
 	PageTokens []string `json:"tokens"`
 }
 
+// NewMockCreatRequestHandlerFactory returns a factory instance that manufactures Handlers
+// which can generate mocked data to be added to the cache.  
 func NewMockCreatRequestHandlerFactory() HandlerFactory {
 	return &mockCreatRequestHandlerFactory{}
 }
@@ -79,27 +87,51 @@ func (m *mockCreatRequestHandler) createMockData(req *MockCreateRequest) (*MockC
 	hash := NewUUID()
 
 	// Only create a single page of data for now; token is a UUID
-	token := NewUUID()
+	curPageToken := NewUUID()
 
 	resp := &MockCreateResponse{
 		RequestHash: hash,
-		PageTokens: []string{ token },
+		PageTokens: []string{ curPageToken },
 	}
 
-	var remainingRecords int = req.RecordCount
+	remainingRecords := req.RecordCount	
+	records := [][]string{}
 
-	_, err := m.createPage(hash, token, req.Columns, remainingRecords, req.RecordsPerPage)
+	for remainingRecords > 0 {
 
+		for len(records) < req.RecordsPerPage && remainingRecords > 0 {
+
+			records = append(records, m.createRecord(req.Columns))
+
+			remainingRecords--
+		}
+
+		if remainingRecords > 0 {
+			nextPageToken := NewUUID()
+
+			err := m.createPage(hash, curPageToken, nextPageToken, req.Columns, records)
+			if err != nil {
+				return nil, err
+			}	
+
+			resp.PageTokens = append(resp.PageTokens, nextPageToken)
+			curPageToken = nextPageToken
+			records = [][]string{}
+		}
+
+	}
+
+	err := m.createPage(hash, curPageToken, "", req.Columns, records)
 	if err != nil {
 		return nil, err
-	}
+	}	
 
 	fmt.Println(resp)
 	return resp, nil
 }
 
 // createPage creates a single page, generating the remaining records up to the page size
-func (m *mockCreatRequestHandler) createPage(hash, token string, cols []MockColumn, remainingRecords, pageRecordCount int) (int, error) {
+func (m *mockCreatRequestHandler) createPage(hash, pageToken, nextPageToken string, cols []MockColumn, records [][]string) error {
 	type Record struct {
 		Cells []string `json:"cells"`
 	}
@@ -120,7 +152,7 @@ func (m *mockCreatRequestHandler) createPage(hash, token string, cols []MockColu
 	}
 
 	type Meta struct {
-
+		NextToken string `json:"next"`
 	}
 
 	type ResultSet struct {
@@ -128,32 +160,32 @@ func (m *mockCreatRequestHandler) createPage(hash, token string, cols []MockColu
 		Data Data `json:"data"`
 	}
 
+	pageCols := []Column{}
+	for offset, col := range cols {
+		pageCols = append(pageCols, Column{
+			Name: col.Name,
+			Type: col.Type,
+			Position: offset,
+		})
+	}
+
+	pageRecords := []Record{}
+	for _, record := range records {
+		pageRecords = append(pageRecords, Record{Cells:record})
+	}
+
 	// Create mock data
 	var page ResultSet = ResultSet{
+		Meta: Meta{NextToken: nextPageToken},
 		Data: Data{
-			Header: Header{
-				Columns: []Column{
-					Column{
-						Name: "colX",
-						Type: "string",
-						Position: 1,
-					},
-				},
-			},
-			Records: []Record{
-				Record{
-					Cells: []string{
-						"Hello",
-					},
-				},
-			},
+			Header: Header{Columns: pageCols},
+			Records: pageRecords,
 		},
 	}
 
-
 	info := &pageInfo{
 		hash: hash,
-		token: token,
+		token: pageToken,
 	}
 
 	var buf bytes.Buffer
@@ -161,10 +193,67 @@ func (m *mockCreatRequestHandler) createPage(hash, token string, cols []MockColu
 
 	err := m.writePage(buf.Bytes(), info)
 	if err != nil {
-		return 0, err
+		return err
 	}
 
-	return 0, nil
+	return nil
 }
 
+func (m *mockCreatRequestHandler) createRandomString(maxLength int) string {
+	available := "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz012346789"
 
+	length := rand.Intn(maxLength)
+
+	ret := ""
+	for i := 0; i < length; i++ {
+		c := rand.Intn(len(available))
+		ret = ret + available[c:c+1]
+	}
+	return ret
+}
+
+func (m *mockCreatRequestHandler) createRandomInt(lowerBound, upperBound int) int {
+	if lowerBound == upperBound {
+		return lowerBound
+	}
+	if lowerBound > upperBound {
+		return m.createRandomInt(upperBound, lowerBound)
+	}
+	if lowerBound < 0 && upperBound < 0 {
+		return -m.createRandomInt(-upperBound, -lowerBound)
+	}
+	return rand.Intn(upperBound-lowerBound) + lowerBound
+}
+
+func (m *mockCreatRequestHandler) createRandomFloat64(lowerBound, upperBound float64) float64 {
+	if lowerBound == upperBound {
+		return lowerBound
+	}
+	if lowerBound > upperBound {
+		return m.createRandomFloat64(upperBound, lowerBound)
+	}
+	if lowerBound < 0 && upperBound < 0 {
+		return -m.createRandomFloat64(-upperBound, -lowerBound)
+	}
+	return rand.Float64()*(upperBound-lowerBound) + lowerBound
+}
+
+func (m *mockCreatRequestHandler) createRecord(cols []MockColumn) []string {
+
+	var record []string = []string{}
+
+	for _, col := range cols {
+		switch(strings.ToLower(col.Type)) {
+		case "string": 
+			record = append(record, m.createRandomString(col.MaxLength))
+		case "int":
+			record = append(record, fmt.Sprintf("%v", m.createRandomInt(col.IntLowerBound, col.IntUpperBound)))
+		case "float":
+			record = append(record, fmt.Sprintf("%v", m.createRandomFloat64(col.FloatLowerBound, col.FloatUpperBound)))
+		default:
+			record = append(record, "Unsupported Type")
+		}
+	}
+
+	return record
+} 

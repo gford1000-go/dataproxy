@@ -76,7 +76,9 @@ func (b *baseHandler) writePage(data []byte, info *pageInfo) error {
 		b.Log(fmt.Sprintf("Page %v: Completed encryption", info.token))		
 	}
 
+	b.Log(fmt.Sprintf("Page %v: Writing to Disk", info.token))		
 	err = ioutil.WriteFile(b.getCacheFileName(info), data, 0644)
+	b.Log(fmt.Sprintf("Page %v: Writing to Disk Completed", info.token))		
 	if err != nil {
 		b.Log(fmt.Sprintf("Page %v: Error writing to disk - %v", info.token, err))		
 	}
@@ -91,7 +93,9 @@ func (b *baseHandler) retrievePage(info *pageInfo) (page []byte, err error) {
 
 	pageLocation := b.getCacheFileName(info)
 
+	b.Log(fmt.Sprintf("Page %v: Reading from Disk", info.token))		
 	page, err = ioutil.ReadFile(pageLocation)
+	b.Log(fmt.Sprintf("Page %v: Reading from Disk completed", info.token))		
 	if err != nil {
 		b.Log(fmt.Sprintf("Page %v: Error reading from disk - %v", info.token, err))		
 		return nil, fmt.Errorf("Invalid request or page token")
