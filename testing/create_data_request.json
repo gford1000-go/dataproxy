@@ -1,0 +1,39 @@
+{
+    "max_records": 500000,
+    "columns": [
+        {
+            "name": "colA",
+            "type": "string",
+            "max_length": 10
+        },
+        {
+            "name": "colB",
+            "type": "int",
+            "int_lower_bound": 2,
+            "int_upper_bound": 10
+        },
+        {
+            "name": "colC",
+            "type": "float",
+            "float_lower_bound": -23,
+            "float_upper_bound": 57
+        },
+        {
+            "name": "colD",
+            "type": "string",
+            "max_length": 100
+        },
+        {
+            "name": "colE",
+            "type": "string",
+            "max_length": 50
+        },
+        {
+            "name": "colF",
+            "type": "float",
+            "float_lower_bound": 0,
+            "float_upper_bound": 100
+        }
+    ],
+    "records_per_page": 100000
+}
