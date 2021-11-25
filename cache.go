@@ -27,6 +27,46 @@ func (b *baseHandler) getCacheFileName(info *pageInfo) string {
 	return fmt.Sprintf("%v/%x", b.config.root, hash[:])
 }
 
+// zipData applies default gzip to the supplied byte slice
+func (b *baseHandler) zipData(data []byte, token string) ([]byte, error) {
+	b.Log(fmt.Sprintf("Page %v: GZipping", token))
+
+	var buf bytes.Buffer
+	zw := gzip.NewWriter(&buf)
+
+	_, err := zw.Write(data)
+	if err != nil {
+		b.Log(fmt.Sprintf("Page %v: GZip write error - %v", token, err))
+		return nil, err
+	}
+	zw.Close()
+
+	return buf.Bytes(), nil
+}
+
+// unzipData applies gzip decompression to the supplied byte slice
+func (b *baseHandler) unzipData(data []byte, token string) ([]byte, error) {
+	b.Log(fmt.Sprintf("Page %v: Ungzipping", token))
+
+	buf := bytes.NewBuffer(data)
+
+	zr, err := gzip.NewReader(buf)
+	if err != nil {
+		b.Log(fmt.Sprintf("Page %v: Zip buffer error - %v", token, err))
+		return nil, fmt.Errorf("internal failure handling page (4)")
+	}
+	defer zr.Close()
+
+	data, err = ioutil.ReadAll(zr)
+	if err != nil {
+		b.Log(fmt.Sprintf("Page %v: Zip read error - %v", token, err))
+		return nil, fmt.Errorf("internal failure handling page (4)")
+	}
+
+	b.Log(fmt.Sprintf("Page %v: Ungzipped", token))
+	return data, nil
+}
+
 // writePage creates an encrypted page from the slice
 func (b *baseHandler) writePage(data []byte, info *pageInfo) error {
 	b.Log(fmt.Sprintf("Page %v: Writing", info.token))
@@ -34,19 +74,11 @@ func (b *baseHandler) writePage(data []byte, info *pageInfo) error {
 
 	// Apply gzip if specified
 	if b.config.zip {
-		b.Log(fmt.Sprintf("Page %v: GZipping", info.token))
-
-		var buf bytes.Buffer
-		zw := gzip.NewWriter(&buf)
-
-		_, err := zw.Write(data)
+		var err error
+		data, err = b.zipData(data, info.token)
 		if err != nil {
-			b.Log(fmt.Sprintf("Page %v: GZip write error - %v", info.token, err))
 			return err
 		}
-		zw.Close()
-
-		data = buf.Bytes()
 	}
 
 	b.Log(fmt.Sprintf("Page %v: GZipped", info.token))
@@ -138,24 +170,10 @@ func (b *baseHandler) retrievePage(info *pageInfo) (page []byte, err error) {
 	// unzip if requested
 	if !info.gzip {
 		if b.config.zip {
-			b.Log(fmt.Sprintf("Page %v: Ungzipping", info.token))
-
-			buf := bytes.NewBuffer(page)
-
-			zr, err := gzip.NewReader(buf)
+			page, err = b.unzipData(page, info.token)
 			if err != nil {
-				b.Log(fmt.Sprintf("Page %v: Zip buffer error - %v", info.token, err))
-				return nil, fmt.Errorf("internal failure handling page (4)")
+				return nil, err
 			}
-			defer zr.Close()
-
-			page, err = ioutil.ReadAll(zr)
-			if err != nil {
-				b.Log(fmt.Sprintf("Page %v: Zip read error - %v", info.token, err))
-				return nil, fmt.Errorf("internal failure handling page (4)")
-			}
-
-			b.Log(fmt.Sprintf("Page %v: Ungzipped", info.token))
 		}
 	}
 
