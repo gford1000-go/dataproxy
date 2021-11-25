@@ -143,12 +143,11 @@ func (b *baseHandler) retrievePage(info *pageInfo) (page []byte, err error) {
 			buf := bytes.NewBuffer(page)
 
 			zr, err := gzip.NewReader(buf)
-			defer zr.Close()
-
 			if err != nil {
 				b.Log(fmt.Sprintf("Page %v: Zip buffer error - %v", info.token, err))
 				return nil, fmt.Errorf("internal failure handling page (4)")
 			}
+			defer zr.Close()
 
 			page, err = ioutil.ReadAll(zr)
 			if err != nil {
