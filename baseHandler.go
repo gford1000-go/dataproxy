@@ -9,27 +9,27 @@ import (
 type baseHandler struct {
 	config    *cacheConfig
 	handler   func(w http.ResponseWriter, req *http.Request)
-	logger    *logger
+	logger    fLogger
 	method    string
 	pattern   string
 	requestID string
 }
 
 // Log ensures that the requestID is always applied to the logs
-func (b *baseHandler) Info(msg string) {
-	b.logger.Println(fmt.Sprintf("%v INFO  %v", b.requestID, msg))
+func (b *baseHandler) Info(format string, a ...interface{}) {
+	b.logger(Info, b.requestID, format, a...)
 }
 
-func (b *baseHandler) Debug(msg string) {
-	b.logger.Println(fmt.Sprintf("%v DEBUG %v", b.requestID, msg))
+func (b *baseHandler) Debug(format string, a ...interface{}) {
+	b.logger(Debug, b.requestID, format, a...)
 }
 
-func (b *baseHandler) Error(msg string) {
-	b.logger.Println(fmt.Sprintf("%v ERROR %v", b.requestID, msg))
+func (b *baseHandler) Error(format string, a ...interface{}) {
+	b.logger(Error, b.requestID, format, a...)
 }
 
-func (b *baseHandler) Warn(msg string) {
-	b.logger.Println(fmt.Sprintf("%v WARN  %v", b.requestID, msg))
+func (b *baseHandler) Warn(format string, a ...interface{}) {
+	b.logger(Warn, b.requestID, format, a...)
 }
 
 // Process generates the response for a request

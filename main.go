@@ -9,10 +9,10 @@ import (
 // Handler describes the interface to handle a request
 type Handler interface {
 	Process(w http.ResponseWriter, req *http.Request)
-	Info(msg string)
-	Debug(msg string)
-	Error(msg string)
-	Warn(msg string)
+	Info(format string, a ...interface{})
+	Debug(format string, a ...interface{})
+	Error(format string, a ...interface{})
+	Warn(format string, a ...interface{})
 }
 
 // HandlerFactory provides an instance creation method for a Handler
@@ -57,8 +57,8 @@ func main() {
 		},
 	}
 
-	logger := NewLogger(config.log)
-	logger.Println(fmt.Sprintf("Starting on port %v", config.port))
+	logger := NewLogger(config.log, All)
+	logger(Info, "", "Starting on port %v", config.port)
 
 	http.HandleFunc("/alive", alive)
 	http.HandleFunc("/page", postHandler("/page", config.cache, NewPageRequestHandlerFactory()))

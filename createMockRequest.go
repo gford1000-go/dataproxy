@@ -131,7 +131,7 @@ func (m *mockCreatRequestHandler) createMockData(req *MockCreateRequest) (*MockC
 		return nil, err
 	}
 
-	m.Debug(fmt.Sprintf("Hash: %v, Pages: %v", resp.RequestHash, resp.PageTokens))
+	m.Debug("Hash: %v, Pages: %v", resp.RequestHash, resp.PageTokens)
 	return resp, nil
 }
 
