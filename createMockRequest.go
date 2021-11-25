@@ -9,29 +9,35 @@ import (
 	"strings"
 )
 
+// MockColumn defines how a column of data should be constructed, with boundaries
+// for String, Int and Float64 types (which are only the types allowed)
 type MockColumn struct {
-	Name string `json:"name"`
-	Type string `json:"type"`
-	MaxLength int `json:"max_length"`
-	IntLowerBound int `json:"int_lower_bound"`
-	IntUpperBound int `json:"int_upper_bound"`
+	Name            string  `json:"name"`
+	Type            string  `json:"type"`
+	MaxLength       int     `json:"max_length"`
+	IntLowerBound   int     `json:"int_lower_bound"`
+	IntUpperBound   int     `json:"int_upper_bound"`
 	FloatLowerBound float64 `json:"float_lower_bound"`
 	FloatUpperBound float64 `json:"float_upper_bound"`
 }
 
+// MockCreateRequest specifies the generation of a mock set of records, split
+// into pages according to the specified number of records per page
 type MockCreateRequest struct {
-	RecordCount int `json:"max_records"`
-	Columns []MockColumn `json:"columns"`
-	RecordsPerPage int `json:"records_per_page"`
+	RecordCount    int          `json:"max_records"`
+	Columns        []MockColumn `json:"columns"`
+	RecordsPerPage int          `json:"records_per_page"`
 }
 
+// MockCreateResponse provides the details to be able to recover any of the pages
+// created as a result of a MockCreateRequest being sent to the server
 type MockCreateResponse struct {
-	RequestHash string `json:"hash"`
-	PageTokens []string `json:"tokens"`
+	RequestHash string   `json:"hash"`
+	PageTokens  []string `json:"tokens"`
 }
 
 // NewMockCreatRequestHandlerFactory returns a factory instance that manufactures Handlers
-// which can generate mocked data to be added to the cache.  
+// which can generate mocked data to be added to the cache.
 func NewMockCreatRequestHandlerFactory() HandlerFactory {
 	return &mockCreatRequestHandlerFactory{}
 }
@@ -54,7 +60,6 @@ func (f *mockCreatRequestHandlerFactory) New(pattern string, config *cacheConfig
 type mockCreatRequestHandler struct {
 	baseHandler
 }
-
 
 // handleCreatePages is invoked after the initial authorization and validation checks are completed,
 // and creates pages of random data as defined by the request
@@ -91,10 +96,10 @@ func (m *mockCreatRequestHandler) createMockData(req *MockCreateRequest) (*MockC
 
 	resp := &MockCreateResponse{
 		RequestHash: hash,
-		PageTokens: []string{ curPageToken },
+		PageTokens:  []string{curPageToken},
 	}
 
-	remainingRecords := req.RecordCount	
+	remainingRecords := req.RecordCount
 	records := [][]string{}
 
 	for remainingRecords > 0 {
@@ -112,7 +117,7 @@ func (m *mockCreatRequestHandler) createMockData(req *MockCreateRequest) (*MockC
 			err := m.createPage(hash, curPageToken, nextPageToken, req.Columns, records)
 			if err != nil {
 				return nil, err
-			}	
+			}
 
 			resp.PageTokens = append(resp.PageTokens, nextPageToken)
 			curPageToken = nextPageToken
@@ -124,9 +129,9 @@ func (m *mockCreatRequestHandler) createMockData(req *MockCreateRequest) (*MockC
 	err := m.createPage(hash, curPageToken, "", req.Columns, records)
 	if err != nil {
 		return nil, err
-	}	
+	}
 
-	fmt.Println(resp)
+	m.Log(fmt.Sprintf("Hash: %v, Pages: %v", resp.RequestHash, resp.PageTokens))
 	return resp, nil
 }
 
@@ -137,9 +142,9 @@ func (m *mockCreatRequestHandler) createPage(hash, pageToken, nextPageToken stri
 	}
 
 	type Column struct {
-		Name string `json:"name"`
-		Type string `json:"type"`
-		Position int `json:"position"`
+		Name     string `json:"name"`
+		Type     string `json:"type"`
+		Position int    `json:"position"`
 	}
 
 	type Header struct {
@@ -147,7 +152,7 @@ func (m *mockCreatRequestHandler) createPage(hash, pageToken, nextPageToken stri
 	}
 
 	type Data struct {
-		Header Header `json:"header"`
+		Header  Header   `json:"header"`
 		Records []Record `json:"records"`
 	}
 
@@ -163,28 +168,28 @@ func (m *mockCreatRequestHandler) createPage(hash, pageToken, nextPageToken stri
 	pageCols := []Column{}
 	for offset, col := range cols {
 		pageCols = append(pageCols, Column{
-			Name: col.Name,
-			Type: col.Type,
+			Name:     col.Name,
+			Type:     col.Type,
 			Position: offset,
 		})
 	}
 
 	pageRecords := []Record{}
 	for _, record := range records {
-		pageRecords = append(pageRecords, Record{Cells:record})
+		pageRecords = append(pageRecords, Record{Cells: record})
 	}
 
 	// Create mock data
 	var page ResultSet = ResultSet{
 		Meta: Meta{NextToken: nextPageToken},
 		Data: Data{
-			Header: Header{Columns: pageCols},
+			Header:  Header{Columns: pageCols},
 			Records: pageRecords,
 		},
 	}
 
 	info := &pageInfo{
-		hash: hash,
+		hash:  hash,
 		token: pageToken,
 	}
 
@@ -243,8 +248,8 @@ func (m *mockCreatRequestHandler) createRecord(cols []MockColumn) []string {
 	var record []string = []string{}
 
 	for _, col := range cols {
-		switch(strings.ToLower(col.Type)) {
-		case "string": 
+		switch strings.ToLower(col.Type) {
+		case "string":
 			record = append(record, m.createRandomString(col.MaxLength))
 		case "int":
 			record = append(record, fmt.Sprintf("%v", m.createRandomInt(col.IntLowerBound, col.IntUpperBound)))
@@ -256,4 +261,4 @@ func (m *mockCreatRequestHandler) createRecord(cols []MockColumn) []string {
 	}
 
 	return record
-} 
+}
