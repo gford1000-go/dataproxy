@@ -9,7 +9,10 @@ import (
 // Handler describes the interface to handle a request
 type Handler interface {
 	Process(w http.ResponseWriter, req *http.Request)
-	Log(msg string)
+	Info(msg string)
+	Debug(msg string)
+	Error(msg string)
+	Warn(msg string)
 }
 
 // HandlerFactory provides an instance creation method for a Handler
