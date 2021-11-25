@@ -2,8 +2,8 @@ package main
 
 import (
 	"flag"
-    "fmt"
-    "net/http"
+	"fmt"
+	"net/http"
 )
 
 // Handler describes the interface to handle a request
@@ -27,7 +27,6 @@ func postHandler(pattern string, config *cacheConfig, factory HandlerFactory) fu
 	}
 }
 
-
 // alive verifies the server is running
 func alive(w http.ResponseWriter, req *http.Request) {
 	fmt.Fprintf(w, "up\n")
@@ -40,16 +39,18 @@ func main() {
 	encryptionKey := flag.String("key", "", "AES key for cache")
 	salt := flag.String("salt", "", "Salt for cache filenames")
 	logName := flag.String("log", "/tmp/dataproxy.log", "Log file name")
+	gzip := flag.Bool("zip", false, "If present, then cache files are gzipped prior to saving")
 
 	flag.Parse()
 
 	config := &serverConfig{
 		port: *port,
-		log: *logName,
+		log:  *logName,
 		cache: &cacheConfig{
 			root: *root,
 			salt: []byte(*salt),
-			key: []byte(*encryptionKey),
+			key:  []byte(*encryptionKey),
+			zip:  *gzip,
 		},
 	}
 
