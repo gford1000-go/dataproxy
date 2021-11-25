@@ -58,19 +58,19 @@ func (b *baseHandler) writePage(data []byte, info *pageInfo) error {
 		c, err := aes.NewCipher(b.config.key)
 		if err != nil {
 			b.Log(fmt.Sprintf("Page %v: Error creating Cipher - %v", info.token, err))
-			return fmt.Errorf("Invalid page data")
+			return fmt.Errorf("invalid page data")
 		}
 
 		gcm, err := cipher.NewGCM(c)
 		if err != nil {
 			b.Log(fmt.Sprintf("Page %v: Error creating GCM - %v", info.token, err))
-			return fmt.Errorf("Internal failure creating page (1)")
+			return fmt.Errorf("internal failure creating page (1)")
 		}
 
 		nonce := make([]byte, gcm.NonceSize())
 		if _, err = io.ReadFull(rand.Reader, nonce); err != nil {
 			b.Log(fmt.Sprintf("Page %v: Error creating Nonce - %v", info.token, err))
-			return fmt.Errorf("Internal failure creating page (2)")
+			return fmt.Errorf("internal failure creating page (2)")
 		}
 
 		data = gcm.Seal(nonce, nonce, data, nil)
@@ -100,7 +100,7 @@ func (b *baseHandler) retrievePage(info *pageInfo) (page []byte, err error) {
 	b.Log(fmt.Sprintf("Page %v: Reading from Disk completed", info.token))
 	if err != nil {
 		b.Log(fmt.Sprintf("Page %v: Error reading from disk - %v", info.token, err))
-		return nil, fmt.Errorf("Invalid request or page token")
+		return nil, fmt.Errorf("invalid request or page token")
 	}
 
 	// If a key is provided, assume the page is encrypted
@@ -110,26 +110,26 @@ func (b *baseHandler) retrievePage(info *pageInfo) (page []byte, err error) {
 		c, err := aes.NewCipher(b.config.key)
 		if err != nil {
 			b.Log(fmt.Sprintf("Page %v: Error creating Cipher - %v", info.token, err))
-			return nil, fmt.Errorf("Invalid page data")
+			return nil, fmt.Errorf("invalid page data")
 		}
 
 		gcm, err := cipher.NewGCM(c)
 		if err != nil {
 			b.Log(fmt.Sprintf("Page %v: Error creating GCM - %v", info.token, err))
-			return nil, fmt.Errorf("Internal failure handling page (1)")
+			return nil, fmt.Errorf("internal failure handling page (1)")
 		}
 
 		nonceSize := gcm.NonceSize()
 		if len(page) < nonceSize {
 			b.Log(fmt.Sprintf("Page %v: Data inconsistency", info.token))
-			return nil, fmt.Errorf("Internal failure handling page (2)")
+			return nil, fmt.Errorf("internal failure handling page (2)")
 		}
 
 		nonce, data := page[:nonceSize], page[nonceSize:]
 		page, err = gcm.Open(nil, nonce, data, nil)
 		if err != nil {
 			b.Log(fmt.Sprintf("Page %v: Error decrypting - %v", info.token, err))
-			return nil, fmt.Errorf("Internal failure handling page (3)")
+			return nil, fmt.Errorf("internal failure handling page (3)")
 		}
 
 		b.Log(fmt.Sprintf("Page %v: Decrypted", info.token))
@@ -147,13 +147,13 @@ func (b *baseHandler) retrievePage(info *pageInfo) (page []byte, err error) {
 
 			if err != nil {
 				b.Log(fmt.Sprintf("Page %v: Zip buffer error - %v", info.token, err))
-				return nil, fmt.Errorf("Internal failure handling page (4)")
+				return nil, fmt.Errorf("internal failure handling page (4)")
 			}
 
 			page, err = ioutil.ReadAll(zr)
 			if err != nil {
 				b.Log(fmt.Sprintf("Page %v: Zip read error - %v", info.token, err))
-				return nil, fmt.Errorf("Internal failure handling page (4)")
+				return nil, fmt.Errorf("internal failure handling page (4)")
 			}
 
 			b.Log(fmt.Sprintf("Page %v: Ungzipped", info.token))
