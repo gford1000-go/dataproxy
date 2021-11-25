@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	"os"
 )
 
 type pageInfo struct {
@@ -19,12 +20,22 @@ type pageInfo struct {
 	gzip  bool
 }
 
+// createCacheFileName creates the subfolder for the request if it doesn't exist
+// and returns the name of the file
+func (b *baseHandler) createCacheFileName(info *pageInfo) (string, error) {
+	err := os.MkdirAll(fmt.Sprintf("%v/%v", b.config.root, info.hash), 0744)
+	if err != nil {
+		return "", err
+	}
+	return b.getCacheFileName(info), nil
+}
+
 // getCacheFileName returns a unique filename for a page
 func (b *baseHandler) getCacheFileName(info *pageInfo) string {
 	data := append(b.config.salt, info.hash...)
 	data = append(data, info.token...)
 	hash := sha256.Sum256(data)
-	return fmt.Sprintf("%v/%x", b.config.root, hash[:])
+	return fmt.Sprintf("%v/%v/%x", b.config.root, info.hash, hash[:])
 }
 
 // zipData applies default gzip to the supplied byte slice
@@ -111,7 +122,12 @@ func (b *baseHandler) writePage(data []byte, info *pageInfo) error {
 	}
 
 	b.Log(fmt.Sprintf("Page %v: Writing to Disk", info.token))
-	err := ioutil.WriteFile(b.getCacheFileName(info), data, 0644)
+	fileName, err := b.createCacheFileName(info)
+	if err != nil {
+		b.Log(fmt.Sprintf("Page %v: Error writing to disk - %v", info.token, err))
+		return err
+	}
+	err = ioutil.WriteFile(fileName, data, 0644)
 	b.Log(fmt.Sprintf("Page %v: Writing to Disk Completed", info.token))
 	if err != nil {
 		b.Log(fmt.Sprintf("Page %v: Error writing to disk - %v", info.token, err))
