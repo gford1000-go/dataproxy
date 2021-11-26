@@ -5,8 +5,6 @@ import (
 	"fmt"
 	"net/http"
 	"strings"
-
-	"github.com/gford1000-go/logger"
 )
 
 // PageRequest is the expected request body to identify a
@@ -28,7 +26,6 @@ func (f *pageRequestHandlerFactory) New(pattern string, config *cacheConfig, req
 	h.method = http.MethodPost
 	h.config = config
 	h.handler = h.handlePageRetrieval
-	h.logger = logger.GetLogger()
 	h.pattern = pattern
 	h.requestID = requestID
 

@@ -6,8 +6,6 @@ import (
 	"math/rand"
 	"net/http"
 	"strings"
-
-	"github.com/gford1000-go/logger"
 )
 
 // MockColumn defines how a column of data should be constructed, with boundaries
@@ -50,7 +48,6 @@ func (f *mockCreatRequestHandlerFactory) New(pattern string, config *cacheConfig
 	h.method = http.MethodPost
 	h.config = config
 	h.handler = h.handleCreatePages
-	h.logger = logger.GetLogger()
 	h.pattern = pattern
 	h.requestID = requestID
 

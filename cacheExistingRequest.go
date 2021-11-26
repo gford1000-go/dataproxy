@@ -6,8 +6,6 @@ import (
 	"io"
 	"net/http"
 	"os"
-
-	"github.com/gford1000-go/logger"
 )
 
 // Column specifies a column of data in the file
@@ -45,7 +43,6 @@ func (f *existingFileRequestHandlerFactory) New(pattern string, config *cacheCon
 	h.method = http.MethodPost
 	h.config = config
 	h.handler = h.handleCreatePages
-	h.logger = logger.GetLogger()
 	h.pattern = pattern
 	h.requestID = requestID
 

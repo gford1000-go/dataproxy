@@ -11,7 +11,6 @@ import (
 type baseHandler struct {
 	config    *cacheConfig
 	handler   func(w http.ResponseWriter, req *http.Request)
-	logger    logger.CorrelatedLog
 	method    string
 	pattern   string
 	requestID string
@@ -19,19 +18,19 @@ type baseHandler struct {
 
 // Log ensures that the requestID is always applied to the logs
 func (b *baseHandler) Info(format string, a ...interface{}) {
-	b.logger(logger.Info, b.requestID, format, a...)
+	logger.GetLogger()(logger.Info, b.requestID, format, a...)
 }
 
 func (b *baseHandler) Debug(format string, a ...interface{}) {
-	b.logger(logger.Debug, b.requestID, format, a...)
+	logger.GetLogger()(logger.Debug, b.requestID, format, a...)
 }
 
 func (b *baseHandler) Error(format string, a ...interface{}) {
-	b.logger(logger.Error, b.requestID, format, a...)
+	logger.GetLogger()(logger.Error, b.requestID, format, a...)
 }
 
 func (b *baseHandler) Warn(format string, a ...interface{}) {
-	b.logger(logger.Warn, b.requestID, format, a...)
+	logger.GetLogger()(logger.Warn, b.requestID, format, a...)
 }
 
 // Process generates the response for a request
