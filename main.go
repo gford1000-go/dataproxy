@@ -4,6 +4,8 @@ import (
 	"flag"
 	"fmt"
 	"net/http"
+
+	"github.com/gford1000-go/logger"
 )
 
 // Handler describes the interface to handle a request
@@ -57,8 +59,8 @@ func main() {
 		},
 	}
 
-	logger := NewLogger(config.log, All)
-	logger(Info, "", "Starting on port %v", config.port)
+	log, _ := logger.NewFileLogger(config.log, logger.All, "DataProxy ")
+	log(logger.Info, "", "Starting on port %v", config.port)
 
 	http.HandleFunc("/alive", alive)
 	http.HandleFunc("/page", postHandler("/page", config.cache, NewPageRequestHandlerFactory()))

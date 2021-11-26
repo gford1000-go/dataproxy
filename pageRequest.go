@@ -5,13 +5,15 @@ import (
 	"fmt"
 	"net/http"
 	"strings"
+
+	"github.com/gford1000-go/logger"
 )
 
-// PageRequest is the expected request body to identify a 
+// PageRequest is the expected request body to identify a
 // page to be returned
 type PageRequest struct {
 	RequestHash string `json:"hash"`
-	PageToken string `json:"token"`
+	PageToken   string `json:"token"`
 }
 
 func NewPageRequestHandlerFactory() HandlerFactory {
@@ -26,7 +28,7 @@ func (f *pageRequestHandlerFactory) New(pattern string, config *cacheConfig, req
 	h.method = http.MethodPost
 	h.config = config
 	h.handler = h.handlePageRetrieval
-	h.logger = GetLogger()
+	h.logger = logger.GetLogger()
 	h.pattern = pattern
 	h.requestID = requestID
 
@@ -37,9 +39,8 @@ type pageRequestHandler struct {
 	baseHandler
 }
 
-
 // handlePageRetrieval is invoked after the initial authorization and validation checks are completed
-func (p * pageRequestHandler) handlePageRetrieval(w http.ResponseWriter, req *http.Request) {
+func (p *pageRequestHandler) handlePageRetrieval(w http.ResponseWriter, req *http.Request) {
 
 	// Validate the content type requested
 	reqSupportableTypes, allSupportedTypes := getRequestSupportedTypes(req)
@@ -58,10 +59,10 @@ func (p * pageRequestHandler) handlePageRetrieval(w http.ResponseWriter, req *ht
 
 	// Retrieve page from cache
 	info := &pageInfo{
-		hash: pg.RequestHash,
+		hash:  pg.RequestHash,
 		token: pg.PageToken,
 		types: reqSupportableTypes,
-		gzip: false,
+		gzip:  false,
 	}
 	b, err := p.getPage(info)
 	if err != nil {

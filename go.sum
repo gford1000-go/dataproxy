@@ -1,0 +1,4 @@
+github.com/gford1000-go/logger v0.0.0-20211126171413-4d0371483e40 h1:Sek/68a1WK4cHhUsdmYaHO4sOUPEA5lxPF5cNKspUMc=
+github.com/gford1000-go/logger v0.0.0-20211126171413-4d0371483e40/go.mod h1:yvIogVLvZ1y8Z8mZR96tFT2tjXcMyxLGcD8lc3ow1OA=
+github.com/google/uuid v1.3.0 h1:t6JiXgmwXMjEs8VusXIJk2BXHsn+wx8BZdTaoZ5fu7I=
+github.com/google/uuid v1.3.0/go.mod h1:TIyPZe4MgqvfeYDBFedMoGGpEw/LqOeaOT+nhxU+yHo=
