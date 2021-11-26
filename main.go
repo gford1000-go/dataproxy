@@ -64,6 +64,7 @@ func main() {
 
 	http.HandleFunc("/alive", alive)
 	http.HandleFunc("/page", postHandler("/page", config.cache, NewPageRequestHandlerFactory()))
-	http.HandleFunc("/request", postHandler("/request", config.cache, NewMockCreatRequestHandlerFactory()))
+	http.HandleFunc("/create", postHandler("/create", config.cache, NewMockCreatRequestHandlerFactory()))
+	http.HandleFunc("/existing", postHandler("/existing", config.cache, NewExistingRequestHandlerFactory()))
 	http.ListenAndServe(fmt.Sprintf(":%v", config.port), nil)
 }

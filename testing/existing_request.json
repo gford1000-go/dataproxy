@@ -1,0 +1,22 @@
+{
+    "file_name": "/Users/gford1000/Go/src/dataproxy/testing/data/original/small.csv",
+    "columns": [
+        {
+            "name": "colA",
+            "type": "string"
+        },
+        {
+            "name": "colB",
+            "type": "int"
+        },
+        {
+            "name": "colC",
+            "type": "float"
+        },
+        {
+            "name": "colD",
+            "type": "string"
+        }
+    ],
+    "records_per_page": 5
+}
