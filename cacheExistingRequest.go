@@ -123,15 +123,12 @@ endOfFile:
 
 		nextPageToken := NewUUID()
 
-		err := m.createPage(hash, curPageToken, nextPageToken, req.Columns, records[0:req.RecordsPerPage])
-		if err != nil {
-			return nil, err
-		}
+		// Asynchronous write now that we have the data
+		go m.createPage(hash, curPageToken, nextPageToken, req.Columns, records[0:req.RecordsPerPage])
 
 		resp.PageTokens = append(resp.PageTokens, nextPageToken)
 		curPageToken = nextPageToken
-		records = records[req.RecordsPerPage:]
-
+		records = [][]string{records[req.RecordsPerPage]}
 	}
 
 	err = m.createPage(hash, curPageToken, "", req.Columns, records)
