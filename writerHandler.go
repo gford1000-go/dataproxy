@@ -13,9 +13,6 @@ type writeHandler struct {
 
 // createPage creates a single page, generating the remaining records up to the page size
 func (m *writeHandler) createPage(hash, pageToken, nextPageToken string, cols []Column, records [][]string) error {
-	type Record struct {
-		Cells []string `json:"cells"`
-	}
 
 	type Column struct {
 		Name     string `json:"name"`
@@ -28,8 +25,8 @@ func (m *writeHandler) createPage(hash, pageToken, nextPageToken string, cols []
 	}
 
 	type Data struct {
-		Header  Header   `json:"header"`
-		Records []Record `json:"records"`
+		Header  Header     `json:"header"`
+		Records [][]string `json:"records"`
 	}
 
 	type Meta struct {
@@ -50,17 +47,12 @@ func (m *writeHandler) createPage(hash, pageToken, nextPageToken string, cols []
 		})
 	}
 
-	pageRecords := []Record{}
-	for _, record := range records {
-		pageRecords = append(pageRecords, Record{Cells: record})
-	}
-
-	// Create mock data
+	// Create page of data
 	var page ResultSet = ResultSet{
 		Meta: Meta{NextToken: nextPageToken},
 		Data: Data{
 			Header:  Header{Columns: pageCols},
-			Records: pageRecords,
+			Records: records,
 		},
 	}
 
