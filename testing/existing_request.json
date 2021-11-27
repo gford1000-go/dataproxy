@@ -1,22 +1,50 @@
 {
-    "file_name": "/Users/gford1000/Go/src/dataproxy/testing/data/original/small.csv",
+    "file_name": "/Users/gford1000/Go/src/dataproxy/testing/data/original/large_customer.csv",
     "columns": [
         {
-            "name": "colA",
+            "name": "Title",
             "type": "string"
         },
         {
-            "name": "colB",
+            "name": "First_Name",
+            "type": "string"
+        },
+        {
+            "name": "Last_Name",
+            "type": "string"
+        },
+        {
+            "name": "Email_Address",
+            "type": "string"
+        },
+        {
+            "name": "DateOfBirth",
+            "type": "string"
+        },
+        {
+            "name": "House_Number",
             "type": "int"
         },
         {
-            "name": "colC",
-            "type": "float"
+            "name": "Street_Name",
+            "type": "string"
         },
         {
-            "name": "colD",
+            "name": "District",
+            "type": "string"
+        },
+        {
+            "name": "Postcode",
+            "type": "string"
+        },
+        {
+            "name": "Mobile_Number",
+            "type": "string"
+        },
+        {
+            "name": "Alternate_Number",
             "type": "string"
         }
     ],
-    "records_per_page": 5
+    "records_per_page": 80000
 }
