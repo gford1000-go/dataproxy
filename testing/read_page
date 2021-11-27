@@ -1,4 +1,4 @@
 #curl -v -w "@curl-format.txt"  --header "Content-Type: application/json" --data "{\"hash\":\"0b04fe11-3fc1-4c0f-9650-6ea2687b5f15\", \"token\":\"8ef26de7-63c1-4d0b-9745-8dd49c665d77\"}"  localhost:8090/page
 
-ab -n 100 -c 4 -v 1 -p "read_page_request.json" -T "application/json" http://localhost:8090/page 
+ab -n 100 -c 1 -v 1 -p "read_page_request.json" -T "application/json" http://localhost:8090/page 
 
