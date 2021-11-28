@@ -11,8 +11,8 @@ type writeHandler struct {
 	baseHandler
 }
 
-// createPage creates a single page, generating the remaining records up to the page size
-func (m *writeHandler) createPage(hash, pageToken, nextPageToken string, cols []Column, records [][]string) error {
+// createPageBytes constructs the JSON page and returns as a byte array
+func (m *writeHandler) createPageBytes(nextPageToken string, cols []Column, records [][]string) []byte {
 
 	type Column struct {
 		Name     string `json:"name"`
@@ -56,15 +56,23 @@ func (m *writeHandler) createPage(hash, pageToken, nextPageToken string, cols []
 		},
 	}
 
+	var buf bytes.Buffer
+	json.NewEncoder(&buf).Encode(page)
+
+	return buf.Bytes()
+}
+
+// createPage creates a single page, generating the remaining records up to the page size
+func (m *writeHandler) createPage(hash, pageToken, nextPageToken string, cols []Column, records [][]string) error {
+
+	b := m.createPageBytes(nextPageToken, cols, records)
+
 	info := &pageInfo{
 		hash:  hash,
 		token: pageToken,
 	}
 
-	var buf bytes.Buffer
-	json.NewEncoder(&buf).Encode(page)
-
-	err := m.writePage(buf.Bytes(), info)
+	err := m.writePage(b, info)
 	if err != nil {
 		return err
 	}
