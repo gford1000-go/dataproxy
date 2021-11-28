@@ -73,34 +73,19 @@ func (m *existingFileRequestHandler) handleCreatePages(w http.ResponseWriter, re
 		return
 	}
 
-	// Channel allows the details of the first page to be returned
-	c := make(chan *firstPageInfo, 1)
+	// Hash should be generated from the request; here is it just a UUID
+	hash := NewUUID()
+
+	// token to the first page of data
+	firstPageToken := NewUUID()
 
 	// Asynchronously generate the page data in the cache
-	m.Debug("Starting page generation")
-	go m.cacheData(&p, file, c)
+	m.Debug("Starting page generation - hash: %v, first page: %v", hash, firstPageToken)
+	go m.cacheData(hash, firstPageToken, &p, file)
 
-	// Wait for details of the first page to be returned
-	m.Debug("Waiting for first page details")
-	info := <-c
-	m.Debug("Received first page details")
-
-	// Retrieve the first page from the cache
-	m.Debug("Retrieving first page")
-	defer m.Debug("Retrieved first page")
-	pi := &pageInfo{
-		hash:  info.requestHash,
-		token: info.token,
-		types: []string{"application/json"},
-		gzip:  false,
-	}
-
-	b, err := m.retrievePage(pi)
-	if err != nil {
-		defer m.Error("Error retrieving the first page")
-		returnError(w, err.Error(), http.StatusBadRequest)
-		return
-	}
+	// Create initial response, which is empty and points to the first page
+	m.Debug("Creating empty first page")
+	b := m.createPageBytes(firstPageToken, p.Columns, [][]string{})
 
 	// Return the first page
 	w.Header().Set("Content-Type", "application/json")
@@ -108,20 +93,18 @@ func (m *existingFileRequestHandler) handleCreatePages(w http.ResponseWriter, re
 	w.Write(b)
 }
 
-func (m *existingFileRequestHandler) cacheData(req *ExistingRequest, file *os.File, c chan *firstPageInfo) error {
+// cacheData reads records from the file, creating cache pages until EOF is reached
+func (m *existingFileRequestHandler) cacheData(hash, firstPageToken string, req *ExistingRequest, file *os.File) error {
 	// Ensure the file is always closed
 	defer file.Close()
 
-	// Hash should be generated from the request; here is it just a UUID
-	hash := NewUUID()
+	// Current page is initially the first page
+	curPageToken := firstPageToken
 
-	// Only create a single page of data for now; token is a UUID
-	curPageToken := NewUUID()
-
+	// CSV based file
 	csvReader := csv.NewReader(file)
 
 	records := [][]string{}
-	first := true
 
 endOfFile:
 	for {
@@ -141,46 +124,22 @@ endOfFile:
 			records = append(records, record)
 		}
 
+		// Having read 1 more record than a page should have, we
+		// know that another page is required, so create its token
 		nextPageToken := NewUUID()
 
-		if first {
-			// Synchronous write for the first page
-			err := m.createPage(hash, curPageToken, "", req.Columns, records)
-			if err != nil {
-				return err
-			}
-
-			// Notify the first page details
-			c <- &firstPageInfo{
-				requestHash: hash,
-				token:       curPageToken,
-			}
-
-			// End of first page processing
-			first = false
-
-		} else {
-			// Asynchronous write now that we have the data
-			go m.createPage(hash, curPageToken, nextPageToken, req.Columns, records[0:req.RecordsPerPage])
-		}
+		// Asynchronous write now that we have the data
+		go m.createPage(hash, curPageToken, nextPageToken, req.Columns, records[0:req.RecordsPerPage])
 
 		// Reset for next page
 		curPageToken = nextPageToken
 		records = [][]string{records[req.RecordsPerPage]}
 	}
 
-	// Final page
+	// Final page - identified by an empty token
 	err := m.createPage(hash, curPageToken, "", req.Columns, records)
 	if err != nil {
 		return err
-	}
-
-	// Final page might still have been the first page
-	if first {
-		c <- &firstPageInfo{
-			requestHash: hash,
-			token:       curPageToken,
-		}
 	}
 
 	return nil
