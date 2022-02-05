@@ -2,3 +2,7 @@ github.com/gford1000-go/logger v0.0.0-20211126171413-4d0371483e40 h1:Sek/68a1WK4
 github.com/gford1000-go/logger v0.0.0-20211126171413-4d0371483e40/go.mod h1:yvIogVLvZ1y8Z8mZR96tFT2tjXcMyxLGcD8lc3ow1OA=
 github.com/google/uuid v1.3.0 h1:t6JiXgmwXMjEs8VusXIJk2BXHsn+wx8BZdTaoZ5fu7I=
 github.com/google/uuid v1.3.0/go.mod h1:TIyPZe4MgqvfeYDBFedMoGGpEw/LqOeaOT+nhxU+yHo=
+github.com/pierrec/lz4 v2.6.1+incompatible h1:9UY3+iC23yxF0UfGaYrGplQ+79Rg+h/q9FV9ix19jjM=
+github.com/pierrec/lz4 v2.6.1+incompatible/go.mod h1:pdkljMzZIN41W+lC3N2tnIh5sFi+IEE17M5jbnwPHcY=
+github.com/pierrec/lz4/v4 v4.1.13 h1:/OvL3gfLjTf7nEATCYFLe4VeorMGI3nhLU5eb8FnEjU=
+github.com/pierrec/lz4/v4 v4.1.13/go.mod h1:gZWDp/Ze/IJXGXf23ltt2EXimqmTUXEy0GFuRQyBid4=

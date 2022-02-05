@@ -2,7 +2,6 @@ package main
 
 import (
 	"bytes"
-	"compress/gzip"
 	"crypto/aes"
 	"crypto/cipher"
 	"crypto/rand"
@@ -11,6 +10,8 @@ import (
 	"io"
 	"io/ioutil"
 	"os"
+
+	lz4 "github.com/pierrec/lz4"
 )
 
 type pageInfo struct {
@@ -40,42 +41,38 @@ func (b *baseHandler) getCacheFileName(info *pageInfo) string {
 
 // zipData applies default gzip to the supplied byte slice
 func (b *baseHandler) zipData(data []byte, token string) ([]byte, error) {
-	b.Debug("Page %v: GZipping", token)
+	b.Debug("Page %v: Compressing", token)
 
-	var buf bytes.Buffer
-	zw := gzip.NewWriter(&buf)
+	d := []byte{}
+	r := bytes.NewReader(data)
+	buf := bytes.NewBuffer(d)
+	zw := lz4.NewWriter(buf)
 
-	_, err := zw.Write(data)
+	_, err := io.Copy(zw, r)
 	if err != nil {
-		b.Error("Page %v: GZip write error - %v", token, err)
+		b.Error("Page %v: LZ4 write error - %v", token, err)
 		return nil, err
 	}
 	zw.Close()
 
-	b.Debug("Page %v: GZipped", token)
+	b.Debug("Page %v: LZ4", token)
 	return buf.Bytes(), nil
 }
 
 // unzipData applies gzip decompression to the supplied byte slice
 func (b *baseHandler) unzipData(data []byte, token string) ([]byte, error) {
-	b.Debug("Page %v: Ungzipping", token)
+	b.Debug("Page %v: Uncompressing", token)
 
-	buf := bytes.NewBuffer(data)
+	r := bytes.NewReader(data)
+	zr := lz4.NewReader(r)
 
-	zr, err := gzip.NewReader(buf)
-	if err != nil {
-		b.Error("Page %v: Zip buffer error - %v", token, err)
-		return nil, fmt.Errorf("internal failure handling page (4)")
-	}
-	defer zr.Close()
-
-	data, err = ioutil.ReadAll(zr)
+	data, err := ioutil.ReadAll(zr)
 	if err != nil {
 		b.Error("Page %v: Zip read error - %v", token, err)
 		return nil, fmt.Errorf("internal failure handling page (4)")
 	}
 
-	b.Debug("Page %v: Ungzipped", token)
+	b.Debug("Page %v: Uncompressed", token)
 	return data, nil
 }
 
