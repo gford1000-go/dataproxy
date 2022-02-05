@@ -2,7 +2,6 @@ package main
 
 import (
 	"bytes"
-	"crypto/aes"
 	"crypto/cipher"
 	"crypto/rand"
 	"crypto/sha256"
@@ -91,16 +90,10 @@ func (b *baseHandler) writePage(data []byte, info *pageInfo) error {
 	}
 
 	// If a key is provided, assume the page is to be encrypted
-	if len(b.config.key) > 0 {
+	if b.config.cipher != nil {
 		b.Debug("Page %v: Encrypting", info.token)
 
-		c, err := aes.NewCipher(b.config.key)
-		if err != nil {
-			b.Error("Page %v: Error creating Cipher - %v", info.token, err)
-			return fmt.Errorf("invalid page data")
-		}
-
-		gcm, err := cipher.NewGCM(c)
+		gcm, err := cipher.NewGCM(b.config.cipher)
 		if err != nil {
 			b.Error("Page %v: Error creating GCM - %v", info.token, err)
 			return fmt.Errorf("internal failure creating page (1)")
@@ -148,16 +141,10 @@ func (b *baseHandler) retrievePage(info *pageInfo) (page []byte, err error) {
 	}
 
 	// If a key is provided, assume the page is encrypted
-	if len(b.config.key) > 0 {
+	if b.config.cipher != nil {
 		b.Debug("Page %v: Decrypting", info.token)
 
-		c, err := aes.NewCipher(b.config.key)
-		if err != nil {
-			b.Error("Page %v: Error creating Cipher - %v", info.token, err)
-			return nil, fmt.Errorf("invalid page data")
-		}
-
-		gcm, err := cipher.NewGCM(c)
+		gcm, err := cipher.NewGCM(b.config.cipher)
 		if err != nil {
 			b.Error("Page %v: Error creating GCM - %v", info.token, err)
 			return nil, fmt.Errorf("internal failure handling page (1)")

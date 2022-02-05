@@ -1,10 +1,12 @@
 package main
 
+import "crypto/cipher"
+
 type cacheConfig struct {
-	root string
-	salt []byte
-	key  []byte
-	zip  bool
+	root   string
+	salt   []byte
+	cipher cipher.Block
+	zip    bool
 }
 
 type serverConfig struct {

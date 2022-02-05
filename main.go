@@ -1,6 +1,7 @@
 package main
 
 import (
+	"crypto/aes"
 	"flag"
 	"fmt"
 	"net/http"
@@ -54,9 +55,17 @@ func main() {
 		cache: &cacheConfig{
 			root: *root,
 			salt: []byte(*salt),
-			key:  []byte(*encryptionKey),
 			zip:  *gzip,
 		},
+	}
+
+	key := []byte(*encryptionKey)
+	if len(key) > 0 {
+		c, err := aes.NewCipher(key)
+		if err != nil {
+			panic(fmt.Sprintf("Error creating Cipher - %v", err))
+		}
+		config.cache.cipher = c
 	}
 
 	log, _ := logger.NewFileLogger(config.log, logger.All, "DataProxy ")
