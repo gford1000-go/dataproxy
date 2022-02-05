@@ -45,7 +45,7 @@ func main() {
 	encryptionKey := flag.String("key", "", "AES key for cache")
 	salt := flag.String("salt", "", "Salt for cache filenames")
 	logName := flag.String("log", "/tmp/dataproxy.log", "Log file name")
-	gzip := flag.Bool("zip", false, "If present, then cache files are gzipped prior to saving")
+	useCompression := flag.Bool("zip", false, "If present, then cache files are compressed prior to saving")
 
 	flag.Parse()
 
@@ -53,9 +53,9 @@ func main() {
 		port: *port,
 		log:  *logName,
 		cache: &cacheConfig{
-			root: *root,
-			salt: []byte(*salt),
-			zip:  *gzip,
+			root:           *root,
+			salt:           []byte(*salt),
+			useCompression: *useCompression,
 		},
 	}
 

@@ -56,10 +56,10 @@ func (p *pageRequestHandler) handlePageRetrieval(w http.ResponseWriter, req *htt
 
 	// Retrieve page from cache
 	info := &pageInfo{
-		hash:  pg.RequestHash,
-		token: pg.PageToken,
-		types: reqSupportableTypes,
-		gzip:  false,
+		hash:           pg.RequestHash,
+		token:          pg.PageToken,
+		types:          reqSupportableTypes,
+		useCompression: false,
 	}
 	b, err := p.getPage(info)
 	if err != nil {

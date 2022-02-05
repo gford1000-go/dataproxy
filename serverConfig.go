@@ -3,10 +3,10 @@ package main
 import "crypto/cipher"
 
 type cacheConfig struct {
-	root   string
-	salt   []byte
-	cipher cipher.Block
-	zip    bool
+	root           string
+	salt           []byte
+	cipher         cipher.Block
+	useCompression bool
 }
 
 type serverConfig struct {

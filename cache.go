@@ -14,10 +14,10 @@ import (
 )
 
 type pageInfo struct {
-	hash  string
-	token string
-	types []string
-	gzip  bool
+	hash           string
+	token          string
+	types          []string
+	useCompression bool
 }
 
 // createCacheFileName creates the subfolder for the request if it doesn't exist
@@ -38,8 +38,8 @@ func (b *baseHandler) getCacheFileName(info *pageInfo) string {
 	return fmt.Sprintf("%v/%v/%x", b.config.root, info.hash, hash[:])
 }
 
-// zipData applies default gzip to the supplied byte slice
-func (b *baseHandler) zipData(data []byte, token string) ([]byte, error) {
+// compressData applies lz4 compression to the supplied byte slice
+func (b *baseHandler) compressData(data []byte, token string) ([]byte, error) {
 	b.Debug("Page %v: Compressing", token)
 
 	d := []byte{}
@@ -58,8 +58,8 @@ func (b *baseHandler) zipData(data []byte, token string) ([]byte, error) {
 	return buf.Bytes(), nil
 }
 
-// unzipData applies gzip decompression to the supplied byte slice
-func (b *baseHandler) unzipData(data []byte, token string) ([]byte, error) {
+// uncompressData applies decompression to the supplied byte slice
+func (b *baseHandler) uncompressData(data []byte, token string) ([]byte, error) {
 	b.Debug("Page %v: Uncompressing", token)
 
 	r := bytes.NewReader(data)
@@ -80,10 +80,10 @@ func (b *baseHandler) writePage(data []byte, info *pageInfo) error {
 	b.Debug("Page %v: Writing", info.token)
 	defer b.Debug("Page %v: Completed", info.token)
 
-	// Apply gzip if specified
-	if b.config.zip {
+	// Apply compression if specified
+	if b.config.useCompression {
 		var err error
-		data, err = b.zipData(data, info.token)
+		data, err = b.compressData(data, info.token)
 		if err != nil {
 			return err
 		}
@@ -166,10 +166,10 @@ func (b *baseHandler) retrievePage(info *pageInfo) (page []byte, err error) {
 		b.Debug("Page %v: Decrypted", info.token)
 	}
 
-	// unzip if requested
-	if !info.gzip {
-		if b.config.zip {
-			page, err = b.unzipData(page, info.token)
+	// uncompress if requested
+	if !info.useCompression {
+		if b.config.useCompression {
+			page, err = b.uncompressData(page, info.token)
 			if err != nil {
 				return nil, err
 			}
