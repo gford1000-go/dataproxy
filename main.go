@@ -5,6 +5,9 @@ import (
 	"flag"
 	"fmt"
 	"net/http"
+	"os"
+	"os/signal"
+	"syscall"
 
 	"github.com/gford1000-go/logger"
 )
@@ -38,6 +41,17 @@ func alive(w http.ResponseWriter, req *http.Request) {
 	fmt.Fprintf(w, "up\n")
 }
 
+// setupCloseHandler captures CTRL-C events
+func setupCloseHandler() {
+	c := make(chan os.Signal)
+	signal.Notify(c, os.Interrupt, syscall.SIGTERM)
+	go func() {
+		<-c
+		fmt.Println("\r- Ctrl+C pressed in Terminal")
+		os.Exit(0)
+	}()
+}
+
 func main() {
 
 	port := flag.Int("port", 8080, "Port on which to listen")
@@ -67,6 +81,8 @@ func main() {
 		}
 		config.cache.cipher = c
 	}
+
+	setupCloseHandler()
 
 	log, _ := logger.NewFileLogger(config.log, logger.All, "DataProxy ")
 	log(logger.Info, "", "Starting on port %v", config.port)
