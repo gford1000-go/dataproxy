@@ -62,10 +62,29 @@ func (b *baseHandler) compressData(data []byte, token string) ([]byte, error) {
 func (b *baseHandler) uncompressData(data []byte, token string) ([]byte, error) {
 	b.Debug("Page %v: Uncompressing", token)
 
+	readAll := func(r io.Reader, initialSize int) ([]byte, error) {
+		b := make([]byte, 0, initialSize)
+		for {
+			if len(b) == cap(b) {
+				// Add more capacity (let append pick how much).
+				b = append(b, 0)[:len(b)]
+			}
+			n, err := r.Read(b[len(b):cap(b)])
+			b = b[:len(b)+n]
+			if err != nil {
+				if err == io.EOF {
+					err = nil
+				}
+				return b, err
+			}
+		}
+	}
+
 	r := bytes.NewReader(data)
 	zr := lz4.NewReader(r)
 
-	data, err := ioutil.ReadAll(zr)
+	// Scaling of 5 as estimate of compression ratio to minimise reallocs
+	data, err := readAll(zr, 5*len(data))
 	if err != nil {
 		b.Error("Page %v: Zip read error - %v", token, err)
 		return nil, fmt.Errorf("internal failure handling page (4)")
