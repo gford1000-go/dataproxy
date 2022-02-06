@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"runtime/pprof"
 	"syscall"
 
 	"github.com/gford1000-go/logger"
@@ -42,12 +43,17 @@ func alive(w http.ResponseWriter, req *http.Request) {
 }
 
 // setupCloseHandler captures CTRL-C events
-func setupCloseHandler() {
+func setupCloseHandler(isCpuProfiling bool) {
 	c := make(chan os.Signal)
 	signal.Notify(c, os.Interrupt, syscall.SIGTERM)
 	go func() {
 		<-c
 		fmt.Println("\r- Ctrl+C pressed in Terminal")
+
+		if isCpuProfiling {
+			pprof.StopCPUProfile()
+		}
+
 		os.Exit(0)
 	}()
 }
@@ -60,8 +66,22 @@ func main() {
 	salt := flag.String("salt", "", "Salt for cache filenames")
 	logName := flag.String("log", "/tmp/dataproxy.log", "Log file name")
 	useCompression := flag.Bool("zip", false, "If present, then cache files are compressed prior to saving")
+	cpuprofile := flag.String("cpuprofile", "", "Write cpu profile to specified file")
 
 	flag.Parse()
+
+	// Set up CPU profiling per https://go.dev/blog/pprof
+	// using CTRL-C capture as the way to capture the profile,
+	// since ListenAndServe() will not exit
+	if *cpuprofile != "" {
+		f, err := os.Create(*cpuprofile)
+		if err != nil {
+			panic(err)
+		}
+		pprof.StartCPUProfile(f)
+	}
+
+	setupCloseHandler(*cpuprofile != "")
 
 	config := &serverConfig{
 		port: *port,
@@ -81,8 +101,6 @@ func main() {
 		}
 		config.cache.cipher = c
 	}
-
-	setupCloseHandler()
 
 	log, _ := logger.NewFileLogger(config.log, logger.All, "DataProxy ")
 	log(logger.Info, "", "Starting on port %v", config.port)
