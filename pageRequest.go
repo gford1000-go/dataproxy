@@ -14,15 +14,42 @@ type PageRequest struct {
 	PageToken   string `json:"token"`
 }
 
-func NewPageRequestHandlerFactory() HandlerFactory {
-	return &pageRequestHandlerFactory{}
+func NewPageRequestHandlerFactory(maxHandlers int) HandlerFactory {
+	factory := &pageRequestHandlerFactory{
+		get: make(chan chan *pageRequestHandler, maxHandlers),
+		put: make(chan *pageRequestHandler, maxHandlers),
+	}
+
+	go func() {
+
+		for i := 0; i < cap(factory.put); i++ {
+			factory.put <- &pageRequestHandler{c: factory.put}
+		}
+
+		for {
+			c := <-factory.get
+			h := <-factory.put
+			c <- h
+		}
+
+	}()
+
+	return factory
 }
 
 type pageRequestHandlerFactory struct {
+	get chan chan *pageRequestHandler
+	put chan *pageRequestHandler
+}
+
+func (f *pageRequestHandlerFactory) getHandler() *pageRequestHandler {
+	c := make(chan *pageRequestHandler)
+	f.get <- c
+	return <-c
 }
 
 func (f *pageRequestHandlerFactory) New(pattern string, config *cacheConfig, requestID string) Handler {
-	h := &pageRequestHandler{}
+	h := f.getHandler()
 	h.method = http.MethodPost
 	h.config = config
 	h.handler = h.handlePageRetrieval
@@ -34,10 +61,15 @@ func (f *pageRequestHandlerFactory) New(pattern string, config *cacheConfig, req
 
 type pageRequestHandler struct {
 	baseHandler
+	c chan *pageRequestHandler
 }
 
 // handlePageRetrieval is invoked after the initial authorization and validation checks are completed
 func (p *pageRequestHandler) handlePageRetrieval(w http.ResponseWriter, req *http.Request) {
+	// Ensure p is returned to the factory after use
+	defer func() {
+		p.c <- p
+	}()
 
 	// Validate the content type requested
 	reqSupportableTypes, allSupportedTypes := getRequestSupportedTypes(req)

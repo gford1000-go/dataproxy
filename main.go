@@ -67,6 +67,7 @@ func main() {
 	logName := flag.String("log", "/tmp/dataproxy.log", "Log file name")
 	useCompression := flag.Bool("zip", false, "If present, then cache files are compressed prior to saving")
 	cpuprofile := flag.String("cpuprofile", "", "Write cpu profile to specified file")
+	maxPageHandlers := flag.Int("page", 5, "Max number of concurrent page handlers")
 
 	flag.Parse()
 
@@ -106,7 +107,7 @@ func main() {
 	log(logger.Info, "", "Starting on port %v", config.port)
 
 	http.HandleFunc("/alive", alive)
-	http.HandleFunc("/page", postHandler("/page", config.cache, NewPageRequestHandlerFactory()))
+	http.HandleFunc("/page", postHandler("/page", config.cache, NewPageRequestHandlerFactory(*maxPageHandlers)))
 	http.HandleFunc("/create", postHandler("/create", config.cache, NewMockCreatRequestHandlerFactory()))
 	http.HandleFunc("/existing", postHandler("/existing", config.cache, NewExistingRequestHandlerFactory()))
 	http.ListenAndServe(fmt.Sprintf(":%v", config.port), nil)
