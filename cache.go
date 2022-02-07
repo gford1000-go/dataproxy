@@ -59,39 +59,44 @@ func (b *baseHandler) compressData(data []byte, token string) ([]byte, error) {
 }
 
 // uncompressData applies decompression to the supplied byte slice
-func (b *baseHandler) uncompressData(data []byte, token string) ([]byte, error) {
+func (b *baseHandler) uncompressData(compressedData []byte, token string) ([]byte, error) {
 	b.Debug("Page %v: Uncompressing", token)
 
-	readAll := func(r io.Reader, initialSize int) ([]byte, error) {
-		b := make([]byte, 0, initialSize)
+	readAll := func(r io.Reader, initialSize int) error {
+		// Reuse b.data if exists and useful size
+		if b.data == nil || cap(b.data) < initialSize {
+			b.data = make([]byte, 0, initialSize)
+		} else {
+			b.data = b.data[:0]
+		}
 		for {
-			if len(b) == cap(b) {
+			if len(b.data) == cap(b.data) {
 				// Add more capacity (let append pick how much).
-				b = append(b, 0)[:len(b)]
+				b.data = append(b.data, 0)[:len(b.data)]
 			}
-			n, err := r.Read(b[len(b):cap(b)])
-			b = b[:len(b)+n]
+			n, err := r.Read(b.data[len(b.data):cap(b.data)])
+			b.data = b.data[:len(b.data)+n]
 			if err != nil {
 				if err == io.EOF {
 					err = nil
 				}
-				return b, err
+				return err
 			}
 		}
 	}
 
-	r := bytes.NewReader(data)
+	r := bytes.NewReader(compressedData)
 	zr := lz4.NewReader(r)
 
 	// Scaling of 5 as estimate of compression ratio to minimise reallocs
-	data, err := readAll(zr, 5*len(data))
+	err := readAll(zr, 5*len(compressedData))
 	if err != nil {
 		b.Error("Page %v: Zip read error - %v", token, err)
 		return nil, fmt.Errorf("internal failure handling page (4)")
 	}
 
 	b.Debug("Page %v: Uncompressed", token)
-	return data, nil
+	return b.data, nil
 }
 
 // writePage creates an encrypted page from the slice

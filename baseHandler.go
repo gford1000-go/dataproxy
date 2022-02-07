@@ -14,6 +14,7 @@ type baseHandler struct {
 	method    string
 	pattern   string
 	requestID string
+	data      []byte
 }
 
 // Log ensures that the requestID is always applied to the logs
